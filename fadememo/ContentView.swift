@@ -8,14 +8,27 @@
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
+    @StateObject private var coordinator: AppCoordinator
+    let vm: MainCameraViewModelImpl
+
+    init() {
+        let photoRepository = PhotoRepositoryImpl()
+        let container = AppContainer(
+            makePhotoUseCase: { photoUseCaseImpl(repository: photoRepository) }
+        )
+        let coordinator = AppCoordinator(container: container)
+        _coordinator = StateObject(wrappedValue: coordinator)
+        let service = CameraServiceImpl()
+        let photoUseCase = photoUseCaseImpl(repository: photoRepository)
+        self.vm = MainCameraViewModelImpl(service: service, coordinator: coordinator, photoUseCase: photoUseCase)
+        vm.viewdidLoad()
+    }
+    var body: some View{
+        MainCameraView(vm: vm)
+            .sheet(item: $coordinator.presentedRoute) { route in
+                coordinator.destinationView(for: route)
+            }
+            .environmentObject(coordinator)
     }
 }
 
